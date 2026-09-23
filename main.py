@@ -9,12 +9,35 @@ def get_host():
     """Ask the user for the hostname or IP address to monitor."""
 
     while True:
-        host = input ("Where are you going to ping: ").strip()
+        host = input("Where are you going to ping: ").strip()
 
         if host:
             return host
 
         print("Host cannot be empty. Please try again...")
+
+
+def ping_host(host):
+    """Ping a host once and return its status and latency."""
+
+    resultado = subprocess.run(
+        ["ping", "-n", "1", host],
+        capture_output=True,
+        text=True
+    )
+
+    # Buscar la latencia en la respuesta
+    match = re.search(r"time[=<](\d+)ms", resultado.stdout)
+
+    if resultado.returncode == 0 and match:
+        estado = "OK"
+        latencia = int(match.group(1))
+    else:
+        estado = "FAIL"
+        latencia = None
+
+    return estado, latencia
+
 
 def monitor(host):
     ARCHIVO = "ping_log.csv"
@@ -43,30 +66,16 @@ def monitor(host):
 
                 ahora = datetime.now()
 
-                resultado = subprocess.run(
-                    ["ping", "-n", "1", host],
-                    capture_output=True,
-                    text=True
-                )
+                # Ejecutar ping
+                estado, latencia = ping_host(host)
 
                 total_pings += 1
 
-                # Buscar la latencia en la respuesta
-                match = re.search(r"time[=<](\d+)ms", resultado.stdout)
-
-                if resultado.returncode == 0 and match:
-
-                    estado = "OK"
-                    latencia = int(match.group(1))
-
+                # Actualizar estadísticas
+                if estado == "OK":
                     successful_pings += 1
                     latencies.append(latencia)
-
                 else:
-
-                    estado = "FAIL"
-                    latencia = None
-
                     failed_pings += 1
 
                 # Guardar en CSV
@@ -80,7 +89,7 @@ def monitor(host):
 
                 archivo.flush()
 
-                # Estadísticas
+                # Calcular estadísticas
                 packet_loss = (failed_pings / total_pings) * 100
 
                 if latencies:
@@ -92,6 +101,7 @@ def monitor(host):
                     min_latency = 0
                     max_latency = 0
 
+                # Mostrar resultado del ping
                 print(
                     f"{ahora.strftime('%Y-%m-%d %H:%M:%S')} | "
                     f"{host} | "
@@ -99,6 +109,7 @@ def monitor(host):
                     f"Latency: {latencia if latencia is not None else '---'} ms"
                 )
 
+                # Mostrar estadísticas
                 print(
                     f"Packets: {total_pings} | "
                     f"Loss: {packet_loss:.2f}% | "
@@ -128,11 +139,14 @@ def monitor(host):
                 print(f"Minimum latency: {min_latency} ms")
                 print(f"Maximum latency: {max_latency} ms")
 
-def main():
 
+def main():
     host = get_host()
 
-    print(f"\nMonitoring: {host}")        
+    print(f"\nMonitoring: {host}")
+
     monitor(host)
+
+
 if __name__ == "__main__":
     main()
