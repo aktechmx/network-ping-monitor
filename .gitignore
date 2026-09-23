@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+
+# Generated files
+ping_log.csv
+
+# Build / executable files
+build/
+dist/
+*.spec
+
+# Environment / secrets
+.env
