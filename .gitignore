@@ -1,23 +1,43 @@
+# ==============================
 # Python
+# ==============================
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
 
+# ==============================
 # Virtual environments
-.venv/
+# ==============================
 venv/
+.venv/
 env/
 
-# IDE
-.vscode/
-
-# Generated files
-ping_log.csv
-
-# Build / executable files
+# ==============================
+# PyInstaller
+# ==============================
 build/
 dist/
 *.spec
 
+# ==============================
+# Generated application data
+# ==============================
+ping_log.csv
+*.log
+
+# ==============================
 # Environment / secrets
+# ==============================
 .env
+.env.*
+
+# ==============================
+# VS Code
+# ==============================
+.vscode/
+
+# ==============================
+# Windows
+# ==============================
+Thumbs.db
+Desktop.ini
