@@ -16,6 +16,27 @@ def get_host():
 
         print("Host cannot be empty. Please try again...")
 
+def get_interval():
+    """Ask the user for the ping interval in seconds"""
+
+    while True:
+        value = input("Ping interval in seconds [1]: ").strip()
+
+        # Pressing Enter uses the default interval
+        if not value:
+            return 1.0
+        try:
+            interval = (float(value))
+
+            if interval > 0:
+                return interval
+
+            print("Interval must be greater than 0...")
+
+        except ValueError:
+            print("Please enter a valid number...")
+
+
 
 def ping_host(host):
     """Ping a host once and return its status and latency."""
@@ -39,7 +60,7 @@ def ping_host(host):
     return estado, latencia
 
 
-def monitor(host):
+def monitor(host, interval):
     ARCHIVO = "ping_log.csv"
 
     total_pings = 0
@@ -120,7 +141,7 @@ def monitor(host):
 
                 print("-" * 80)
 
-                time.sleep(1)
+                time.sleep(interval)
 
         except KeyboardInterrupt:
 
@@ -142,10 +163,12 @@ def monitor(host):
 
 def main():
     host = get_host()
+    interval = get_interval()
 
     print(f"\nMonitoring: {host}")
+    print(f"Interval: {interval} seconds")
 
-    monitor(host)
+    monitor(host,interval)
 
 
 if __name__ == "__main__":
