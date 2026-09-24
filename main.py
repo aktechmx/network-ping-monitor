@@ -3,18 +3,36 @@ import csv
 import time
 import re
 from datetime import datetime
+import socket
 
 
+def validate_host(host):
+    """Check whether a hostname or IP address can be resolved"""
+
+    try:
+        socket.gethostbyname(host)
+        return True
+
+    except socket.gaierror:
+        return False
+    
 def get_host():
     """Ask the user for the hostname or IP address to monitor."""
 
     while True:
         host = input("Where are you going to ping: ").strip()
 
-        if host:
+        if not host:
+            print("Host cannot be empty. Please try again...")
+            continue
+
+        if validate_host(host):
             return host
 
-        print("Host cannot be empty. Please try again...")
+        print("Host could not be resolved. Please check the hostname or IP address.")
+
+        
+
 
 def get_interval():
     """Ask the user for the ping interval in seconds"""
