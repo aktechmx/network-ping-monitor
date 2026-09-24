@@ -1,10 +1,16 @@
-import subprocess
+import subprocess, os, sys
 import csv
 import time
 import re
 from datetime import datetime
 import socket
 
+def get_application_path():
+    """Return the directory where the script or exe is located."""
+    if getattr(sys,"frozen",False):
+        return os.path.dirname(sys.executable)
+
+    return os.path.dirname(os.path.abspath(__file__))
 
 def validate_host(host):
     """Check whether a hostname or IP address can be resolved"""
@@ -79,14 +85,16 @@ def ping_host(host):
 
 
 def monitor(host, interval):
-    ARCHIVO = "ping_log.csv"
+
+    app_path = get_application_path()
+    archivo_csv = os.path.join(app_path,"ping_log.csv")
 
     total_pings = 0
     successful_pings = 0
     failed_pings = 0
     latencies = []
 
-    with open(ARCHIVO, "a", newline="") as archivo:
+    with open(archivo_csv, "a", newline="") as archivo:
 
         writer = csv.writer(archivo)
 
