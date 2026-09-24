@@ -1,6 +1,6 @@
 # Network Ping Monitor
 
-A lightweight Python tool for continuously monitoring network connectivity, latency and intermittent communication failures.
+A lightweight Python tool for continuously monitoring network connectivity, latency, packet loss and intermittent communication failures.
 
 I originally created this project as a simple way to collect evidence when troubleshooting devices with intermittent connectivity problems. Instead of running individual ping tests manually, the tool continuously monitors a host and keeps a historical record that can be analyzed later.
 
@@ -10,7 +10,7 @@ I originally created this project as a simple way to collect evidence when troub
 
 Network Ping Monitor continuously sends ICMP requests to a hostname or IP address and records the result of each test.
 
-For every ping, the application tracks:
+For every monitoring session, the application tracks:
 
 - Date and time
 - Host or IP address
@@ -23,7 +23,7 @@ For every ping, the application tracks:
 - Minimum latency
 - Maximum latency
 
-All monitoring results are also stored automatically in a CSV file.
+Monitoring results are automatically stored in a CSV file for later analysis.
 
 ---
 
@@ -39,13 +39,79 @@ Running:
 ping 192.168.1.50
 ```
 
-can tell us what is happening at that moment, but it doesn't necessarily give us a structured historical record for later analysis.
+can tell us what is happening at that moment, but it doesn't provide a structured historical record for later analysis.
 
 This project started from a simple idea:
 
 > **What if I leave the device monitored and analyze the failures afterward?**
 
 Network Ping Monitor automates that process.
+
+---
+
+## ✨ Features
+
+### Continuous monitoring
+
+Continuously monitors a hostname or IP address using ICMP requests.
+
+### Host validation
+
+Before monitoring begins, the application verifies that the hostname or IP address can be resolved.
+
+Invalid or empty destinations are rejected and the user is prompted again.
+
+### Configurable monitoring interval
+
+The user can define how often a ping should be executed.
+
+```text
+Ping interval in seconds [1]: 5
+```
+
+Pressing Enter uses the default interval of `1` second.
+
+Decimal intervals are also supported:
+
+```text
+0.5
+2.5
+5
+```
+
+### Automatic CSV logging
+
+Each ping result is automatically stored in:
+
+```text
+ping_log.csv
+```
+
+When running the Python script, the log is stored alongside the script.
+
+When running a compiled executable, the log is stored alongside the executable.
+
+### Real-time statistics
+
+During monitoring, the application continuously calculates:
+
+- Total packets
+- Successful requests
+- Failed requests
+- Packet loss
+- Average latency
+- Minimum latency
+- Maximum latency
+
+### Graceful termination
+
+Monitoring can be stopped using:
+
+```text
+Ctrl + C
+```
+
+The application then displays the final statistics for the monitoring session.
 
 ---
 
@@ -57,61 +123,59 @@ When the application starts, it asks for the hostname or IP address to monitor:
 Where are you going to ping: 192.168.1.50
 ```
 
-The application then continuously executes ping requests and displays the result in the console.
-
-Example:
+It then asks for the monitoring interval:
 
 ```text
-2026-09-23 10:35:21 | 192.168.1.50 | OK | Latency: 4 ms
-Packets: 25 | Loss: 0.00% | Avg: 3.84 ms | Min: 2 ms | Max: 7 ms
+Ping interval in seconds [1]: 2
+```
+
+The monitoring session begins:
+
+```text
+Monitoring: 192.168.1.50
+Interval: 2.0 seconds
+
+2026-09-24 08:30:21 | 192.168.1.50 | OK | Latency: 4 ms
+Packets: 1 | Loss: 0.00% | Avg: 4.00 ms | Min: 4 ms | Max: 4 ms
 --------------------------------------------------------------------------------
 ```
 
 If the device stops responding:
 
 ```text
-2026-09-23 10:36:04 | 192.168.1.50 | FAIL | Latency: --- ms
-Packets: 68 | Loss: 1.47% | Avg: 3.92 ms | Min: 2 ms | Max: 8 ms
+2026-09-24 08:31:04 | 192.168.1.50 | FAIL | Latency: --- ms
+Packets: 23 | Loss: 4.35% | Avg: 3.92 ms | Min: 2 ms | Max: 8 ms
 --------------------------------------------------------------------------------
 ```
 
-Monitoring continues until the user stops the application with:
-
-```text
-Ctrl + C
-```
-
-The program then displays the final statistics for the monitoring session.
+The monitoring process continues until the user stops it with `Ctrl + C`.
 
 ---
 
 ## 📊 CSV Logging
 
-Every connectivity test is automatically stored in:
-
-```text
-ping_log.csv
-```
-
-The file uses the following structure:
+Monitoring results are stored using the following structure:
 
 ```csv
 date,hour,host,state,latency_ms
-2026-09-23,10:35:21,192.168.1.50,OK,4
-2026-09-23,10:35:22,192.168.1.50,OK,3
-2026-09-23,10:35:23,192.168.1.50,FAIL,---
-2026-09-23,10:35:24,192.168.1.50,OK,5
+2026-09-24,08:30:21,192.168.1.50,OK,4
+2026-09-24,08:30:23,192.168.1.50,OK,3
+2026-09-24,08:30:25,192.168.1.50,FAIL,---
+2026-09-24,08:30:27,192.168.1.50,OK,5
 ```
 
-This makes it possible to analyze the monitoring session later using tools such as Excel, Python, Pandas or Power BI.
+The generated file can later be analyzed using tools such as:
 
-> The generated `ping_log.csv` file is excluded from the repository through `.gitignore`.
+- Microsoft Excel
+- Python
+- Pandas
+- Power BI
+
+> `ping_log.csv` is excluded from the Git repository through `.gitignore` because it contains runtime-generated monitoring data.
 
 ---
 
 ## 📈 Statistics
-
-During monitoring, the application calculates:
 
 | Metric | Description |
 |---|---|
@@ -123,22 +187,58 @@ During monitoring, the application calculates:
 | Minimum latency | Lowest recorded response time |
 | Maximum latency | Highest recorded response time |
 
-When monitoring is stopped, the final statistics are displayed automatically.
+---
+
+## 🧩 Application Structure
+
+The monitoring logic has been separated into reusable functions to make the application easier to maintain and extend.
+
+```text
+main()
+ │
+ ├── get_host()
+ │      └── validate_host()
+ │
+ ├── get_interval()
+ │
+ └── monitor(host, interval)
+          │
+          ├── get_application_path()
+          ├── ping_host(host)
+          ├── CSV logging
+          ├── Statistics
+          └── Monitoring interval
+```
+
+### Main functions
+
+| Function | Responsibility |
+|---|---|
+| `get_application_path()` | Determines where runtime files should be stored |
+| `validate_host()` | Validates whether a hostname or IP can be resolved |
+| `get_host()` | Requests and validates the monitoring destination |
+| `get_interval()` | Requests and validates the monitoring interval |
+| `ping_host()` | Executes a ping and returns status and latency |
+| `monitor()` | Controls monitoring, statistics and CSV logging |
+| `main()` | Coordinates application startup |
 
 ---
 
 ## 🛠️ Technologies
 
-The current version intentionally uses only Python's standard library.
+The current version uses only Python's standard library.
 
 - **Python**
 - `subprocess` — executes Windows ping commands
+- `socket` — hostname and IP resolution
 - `csv` — stores monitoring results
 - `datetime` — generates timestamps
 - `re` — extracts latency from ping responses
 - `time` — controls the monitoring interval
+- `os` — handles filesystem paths
+- `sys` — detects script/executable execution context
 
-No external Python packages are required for the current version.
+No external Python packages are required.
 
 ---
 
@@ -148,7 +248,7 @@ No external Python packages are required for the current version.
 - Python 3.x
 - Network access to the device being monitored
 
-> The current version uses the Windows `ping -n` command and is therefore designed for Windows.
+> The current version uses the Windows `ping -n` command and is therefore Windows-focused.
 
 ---
 
@@ -172,25 +272,31 @@ cd network-ping-monitor
 python main.py
 ```
 
-### 4. Enter a hostname or IP address
-
-For example:
+### 4. Enter the destination
 
 ```text
-Where are you going to ping: 8.8.8.8
+Where are you going to ping: 192.168.1.50
 ```
 
-The monitoring process will start immediately.
+### 5. Select the monitoring interval
 
-To stop monitoring:
+```text
+Ping interval in seconds [1]: 2
+```
+
+Press Enter without entering a value to use the default `1` second interval.
+
+### 6. Stop monitoring
 
 ```text
 Ctrl + C
 ```
 
+The final monitoring statistics will be displayed automatically.
+
 ---
 
-## 🗂️ Current Project Structure
+## 🗂️ Project Structure
 
 ```text
 network-ping-monitor/
@@ -206,7 +312,7 @@ Generated files such as `ping_log.csv`, Python virtual environments and PyInstal
 
 ## 🔎 Practical Use Cases
 
-The tool can be useful when troubleshooting:
+Network Ping Monitor can help when troubleshooting:
 
 - Intermittent network connectivity
 - Workstations that randomly disconnect
@@ -216,34 +322,38 @@ The tool can be useful when troubleshooting:
 - Devices that appear offline periodically
 - Unstable connections that are difficult to reproduce manually
 
-The CSV history can also help correlate connectivity failures with other events during troubleshooting.
+The historical CSV log can help correlate connectivity failures with other network or system events during troubleshooting.
 
 ---
 
 ## 🗺️ Roadmap
 
-This is an evolving project. Some improvements I'm considering for future versions include:
+Network Ping Monitor is an evolving project.
+
+Potential future improvements include:
 
 - [ ] Graphical user interface
-- [ ] Real-time charts
+- [ ] Real-time latency charts
 - [ ] Historical latency visualization
 - [ ] Automatic outage-duration calculation
 - [ ] Availability percentage
 - [ ] Multiple device monitoring
-- [ ] Configurable ping intervals
 - [ ] Excel report generation
 - [ ] Data analysis with Pandas
 - [ ] Windows executable release
 - [ ] Configuration file support
 - [ ] Alert notifications
+- [ ] Cross-platform ping support
 
 ---
 
 ## 📌 Project Status
 
-**Current version:** Command-line prototype
+**Current version: v1.1**
 
-The core monitoring and CSV logging functionality is working. The project is being progressively expanded as part of my work with Python, IT automation and network troubleshooting.
+The core monitoring functionality is operational and includes host validation, configurable monitoring intervals, real-time statistics and persistent CSV logging.
+
+The project is being progressively expanded as part of my work with Python, IT automation and network troubleshooting.
 
 ---
 
@@ -259,4 +369,6 @@ IT Engineer focused on infrastructure, automation and data analysis.
 
 ## ⚠️ Disclaimer
 
-This project is intended as a lightweight troubleshooting and learning tool. It is not intended to replace enterprise network monitoring platforms.
+This project is intended as a lightweight troubleshooting and learning tool.
+
+It is not intended to replace enterprise network monitoring platforms.
