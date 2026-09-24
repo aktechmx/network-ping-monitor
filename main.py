@@ -85,7 +85,7 @@ def ping_host(host):
 
 
 def monitor(host, interval):
-
+    """Start to monitoring the IP or HOST"""
     app_path = get_application_path()
     archivo_csv = os.path.join(app_path,"ping_log.csv")
 
