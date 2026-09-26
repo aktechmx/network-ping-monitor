@@ -79,16 +79,21 @@ def ping_host(host):
         check=False
     )
 
-    # Get the latency from Windows ping in English or Spanish
-    match = re.search(
-        r"(?:time|tiempo)[=<](\d+)ms",
-        result.stdout,
-        re.IGNORECASE
-    )
-
-    if result.returncode == 0 and match:
+    # Check if the host answered the ping
+    if result.returncode == 0:
         status = "OK"
-        latency = int(match.group(1))
+
+        # Get the latency from Windows ping in English or Spanish
+        match = re.search(
+            r"(?:time|tiempo)[=<](\d+)ms",
+            result.stdout,
+            re.IGNORECASE
+        )
+
+        if match:
+            latency = int(match.group(1))
+        else:
+            latency = None
 
     else:
         status = "FAIL"
@@ -101,26 +106,32 @@ def monitor(host, interval):
     """Start monitoring the IP address or hostname."""
 
     app_path = get_application_path()
-    csv_file = os.path.join(app_path, "ping_log.csv")
+
+    # Create a timestamp for the log file
+    start_time = datetime.now()
+    timestamp = start_time.strftime("%Y-%m-%d_%H-%M-%S")
+
+    # Create a different CSV file for each monitoring session
+    safe_host = host.replace(":", "-")
+    csv_filename = f"ping_{safe_host}_{timestamp}.csv"
+    csv_file = os.path.join(app_path, csv_filename)
 
     total_pings = 0
     successful_pings = 0
     failed_pings = 0
     latencies = []
 
-    with open(csv_file, "a", newline="") as file:
+    with open(csv_file, "w", newline="") as file:
 
         writer = csv.writer(file)
 
-        # Create the CSV headers if the file is empty
-        if file.tell() == 0:
-            writer.writerow([
-                "date",
-                "hour",
-                "host",
-                "state",
-                "latency_ms"
-            ])
+        writer.writerow([
+            "date",
+            "hour",
+            "host",
+            "state",
+            "latency_ms"
+        ])
 
         try:
 
@@ -136,7 +147,9 @@ def monitor(host, interval):
                 # Update ping statistics
                 if status == "OK":
                     successful_pings += 1
-                    latencies.append(latency)
+
+                    if latency is not None:
+                        latencies.append(latency)
 
                 else:
                     failed_pings += 1
@@ -205,6 +218,9 @@ def monitor(host, interval):
                 print(f"Average latency: {average_latency:.2f} ms")
                 print(f"Minimum latency: {min_latency} ms")
                 print(f"Maximum latency: {max_latency} ms")
+
+            print(f"\nLog saved as: {csv_filename}")
+
             input("\nPress Enter to close...")
 
 

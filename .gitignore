@@ -41,3 +41,9 @@ ping_log.csv
 # ==============================
 Thumbs.db
 Desktop.ini
+
+# ==============================
+# Generated application data
+# ==============================
+ping_*.csv
+*.log
