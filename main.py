@@ -1,19 +1,24 @@
-import subprocess, os, sys
 import csv
-import time
+import os
 import re
-from datetime import datetime
 import socket
+import subprocess
+import sys
+import time
+from datetime import datetime
+
 
 def get_application_path():
-    """Return the directory where the script or exe is located."""
-    if getattr(sys,"frozen",False):
+    """Get the folder where the script or executable is located."""
+
+    if getattr(sys, "frozen", False):
         return os.path.dirname(sys.executable)
 
     return os.path.dirname(os.path.abspath(__file__))
 
+
 def validate_host(host):
-    """Check whether a hostname or IP address can be resolved"""
+    """Check if the hostname or IP address can be resolved."""
 
     try:
         socket.gethostbyname(host)
@@ -21,7 +26,8 @@ def validate_host(host):
 
     except socket.gaierror:
         return False
-    
+
+
 def get_host():
     """Ask the user for the hostname or IP address to monitor."""
 
@@ -35,22 +41,24 @@ def get_host():
         if validate_host(host):
             return host
 
-        print("Host could not be resolved. Please check the hostname or IP address.")
-
-        
+        print(
+            "Host could not be resolved. "
+            "Please check the hostname or IP address."
+        )
 
 
 def get_interval():
-    """Ask the user for the ping interval in seconds"""
+    """Ask the user for the ping interval in seconds."""
 
     while True:
         value = input("Ping interval in seconds [1]: ").strip()
 
-        # Pressing Enter uses the default interval
+        # If the user presses Enter, use 1 second as default
         if not value:
             return 1.0
+
         try:
-            interval = (float(value))
+            interval = float(value)
 
             if interval > 0:
                 return interval
@@ -61,44 +69,51 @@ def get_interval():
             print("Please enter a valid number...")
 
 
-
 def ping_host(host):
-    """Ping a host once and return its status and latency."""
+    """Ping the host one time and return the status and latency."""
 
-    resultado = subprocess.run(
+    result = subprocess.run(
         ["ping", "-n", "1", host],
         capture_output=True,
-        text=True
+        text=True,
+        check=False
     )
 
-    # Buscar la latencia en la respuesta
-    match = re.search(r"time[=<](\d+)ms", resultado.stdout)
+    # Get the latency from Windows ping in English or Spanish
+    match = re.search(
+        r"(?:time|tiempo)[=<](\d+)ms",
+        result.stdout,
+        re.IGNORECASE
+    )
 
-    if resultado.returncode == 0 and match:
-        estado = "OK"
-        latencia = int(match.group(1))
+    if result.returncode == 0 and match:
+        status = "OK"
+        latency = int(match.group(1))
+
     else:
-        estado = "FAIL"
-        latencia = None
+        status = "FAIL"
+        latency = None
 
-    return estado, latencia
+    return status, latency
 
 
 def monitor(host, interval):
-    """Start to monitoring the IP or HOST"""
+    """Start monitoring the IP address or hostname."""
+
     app_path = get_application_path()
-    archivo_csv = os.path.join(app_path,"ping_log.csv")
+    csv_file = os.path.join(app_path, "ping_log.csv")
 
     total_pings = 0
     successful_pings = 0
     failed_pings = 0
     latencies = []
 
-    with open(archivo_csv, "a", newline="") as archivo:
+    with open(csv_file, "a", newline="") as file:
 
-        writer = csv.writer(archivo)
+        writer = csv.writer(file)
 
-        if archivo.tell() == 0:
+        # Create the CSV headers if the file is empty
+        if file.tell() == 0:
             writer.writerow([
                 "date",
                 "hour",
@@ -111,52 +126,56 @@ def monitor(host, interval):
 
             while True:
 
-                ahora = datetime.now()
+                current_time = datetime.now()
 
-                # Ejecutar ping
-                estado, latencia = ping_host(host)
+                # Run the ping
+                status, latency = ping_host(host)
 
                 total_pings += 1
 
-                # Actualizar estadísticas
-                if estado == "OK":
+                # Update ping statistics
+                if status == "OK":
                     successful_pings += 1
-                    latencies.append(latencia)
+                    latencies.append(latency)
+
                 else:
                     failed_pings += 1
 
-                # Guardar en CSV
+                # Save the result in the CSV file
                 writer.writerow([
-                    ahora.strftime("%Y-%m-%d"),
-                    ahora.strftime("%H:%M:%S"),
+                    current_time.strftime("%Y-%m-%d"),
+                    current_time.strftime("%H:%M:%S"),
                     host,
-                    estado,
-                    latencia if latencia is not None else "---"
+                    status,
+                    latency if latency is not None else "---"
                 ])
 
-                archivo.flush()
+                # Save the information immediately
+                file.flush()
 
-                # Calcular estadísticas
+                # Calculate current statistics
                 packet_loss = (failed_pings / total_pings) * 100
 
                 if latencies:
                     average_latency = sum(latencies) / len(latencies)
                     min_latency = min(latencies)
                     max_latency = max(latencies)
+
                 else:
                     average_latency = 0
                     min_latency = 0
                     max_latency = 0
 
-                # Mostrar resultado del ping
+                # Show the current ping result
                 print(
-                    f"{ahora.strftime('%Y-%m-%d %H:%M:%S')} | "
+                    f"{current_time.strftime('%Y-%m-%d %H:%M:%S')} | "
                     f"{host} | "
-                    f"{estado} | "
-                    f"Latency: {latencia if latencia is not None else '---'} ms"
+                    f"{status} | "
+                    f"Latency: "
+                    f"{latency if latency is not None else '---'} ms"
                 )
 
-                # Mostrar estadísticas
+                # Show the current statistics
                 print(
                     f"Packets: {total_pings} | "
                     f"Loss: {packet_loss:.2f}% | "
@@ -167,6 +186,7 @@ def monitor(host, interval):
 
                 print("-" * 80)
 
+                # Wait before the next ping
                 time.sleep(interval)
 
         except KeyboardInterrupt:
@@ -185,16 +205,19 @@ def monitor(host, interval):
                 print(f"Average latency: {average_latency:.2f} ms")
                 print(f"Minimum latency: {min_latency} ms")
                 print(f"Maximum latency: {max_latency} ms")
+            input("\nPress Enter to close...")
 
 
 def main():
+    """Start the Network Ping Monitor."""
+
     host = get_host()
     interval = get_interval()
 
     print(f"\nMonitoring: {host}")
     print(f"Interval: {interval} seconds")
 
-    monitor(host,interval)
+    monitor(host, interval)
 
 
 if __name__ == "__main__":
