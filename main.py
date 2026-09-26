@@ -121,7 +121,7 @@ def monitor(host, interval):
     failed_pings = 0
     latencies = []
 
-    with open(csv_file, "w", newline="") as file:
+    with open(csv_file, "w", newline="", encoding="utf-8") as file:
 
         writer = csv.writer(file)
 
